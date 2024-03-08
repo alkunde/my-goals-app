@@ -1,13 +1,42 @@
-import { ScrollView, TouchableOpacity, View } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
+import { View } from "react-native";
+import Bottom from "@gorhom/bottom-sheet";
 
-import { Goal } from "@/components/Goal";
+import { BottomSheet } from "@/components/BottomSheet";
+import { Goals, GoalsProps } from "@/components/Goals";
 import { Header } from "@/components/Header";
+import { Input } from "@/components/Input";
+import { Button } from "@/components/Button";
 
-import { colors } from "@/styles/colors";
+import { mocks } from "@/utils/mocks";
 
 export default function Home() {
-  const goals = ['1'];
+  const [goals, setGoals] = useState<GoalsProps[]>([]);
+
+  const bottomSheetRef = useRef<Bottom>(null);
+  const handleBottomSheetOpen = () => bottomSheetRef.current?.expand();
+  const handleBottomSheetClose = () => bottomSheetRef.current?.snapToIndex(0);
+
+  function handleDetails() {
+    console.log('handleDetails')
+  }
+
+  function handleCreate() {
+    handleBottomSheetClose();
+  }
+
+  async function fetchGoals() {
+    try {
+      const response = mocks.goals;
+      setGoals(response);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  useEffect(() => {
+    fetchGoals();
+  }, []);
 
   return (
     <View className="flex-1 p-8">
@@ -16,28 +45,28 @@ export default function Home() {
         subtitle="Poupe hoje para colher os frutos amanhã"
       />
 
-      <ScrollView
-        horizontal
-        contentContainerClassName="gap-4"
-        showsHorizontalScrollIndicator={false}
-        className="w-full max-h-44"
-      >
-        <TouchableOpacity
-          activeOpacity={0.7}
-          className="bg-green-500 w-16 max-h-44 items-center justify-center rounded-lg"
-          onPress={() => {}}
-        >
-          <MaterialIcons
-            name="add"
-            size={36}
-            color={colors.white}
-          />
-        </TouchableOpacity>
+      <Goals
+        goals={goals}
+        onAdd={handleBottomSheetOpen}
+        onPress={handleDetails}
+      />
 
-        {goals.map((index) => (
-          <Goal key={index} goal={{ name: "Computador", current: 60, total: 110 }} />
-        ))}
-      </ScrollView>
+      <BottomSheet
+        ref={bottomSheetRef}
+        title="Nova meta"
+        snapPoints={[0.1, 284]}
+        onClose={handleBottomSheetClose}
+      >
+        <Input
+          placeholder="Nome da meta"
+        />
+
+        <Input
+          placeholder="Valor"
+        />
+
+        <Button title="Criar" onPress={handleCreate} />
+      </BottomSheet>
     </View>
   );
 }
