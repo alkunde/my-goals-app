@@ -1,34 +1,77 @@
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { Alert, Keyboard, View } from "react-native";
 import Bottom from "@gorhom/bottom-sheet";
+import { router } from "expo-router";
+import dayjs from "dayjs";
 
 import { BottomSheet } from "@/components/BottomSheet";
 import { Goals, GoalsProps } from "@/components/Goals";
 import { Header } from "@/components/Header";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
+import { Transactions, TransactionsProps } from "@/components/Transactions";
 
 import { mocks } from "@/utils/mocks";
 
 export default function Home() {
   const [goals, setGoals] = useState<GoalsProps[]>([]);
+  const [transactions, setTransactions] = useState<TransactionsProps>([]);
+  const [name, setName] = useState("");
+  const [total, setTotal] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const bottomSheetRef = useRef<Bottom>(null);
   const handleBottomSheetOpen = () => bottomSheetRef.current?.expand();
-  const handleBottomSheetClose = () => bottomSheetRef.current?.snapToIndex(0);
+  const handleBottomSheetClose = () => {
+    Keyboard.dismiss();
+    bottomSheetRef.current?.snapToIndex(0);
+  };
 
-  function handleDetails() {
-    console.log('handleDetails')
+  function handleDetails(id: string) {
+    router.navigate("/details/" + id);
   }
 
-  function handleCreate() {
-    handleBottomSheetClose();
+  async function handleCreate() {
+    try {
+      const totalAsNumber = Number(total.toString().replace(",", "."));
+
+      if (isNaN(totalAsNumber)) {
+        return Alert.alert("Erro", "Valor inválido");
+      }
+
+      handleBottomSheetClose();
+      Alert.alert("Sucesso", "Meta cadastrada");
+
+      setName("");
+      setTotal("");
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível cadastrar");
+      console.log(error);
+    }
   }
 
   async function fetchGoals() {
     try {
+      setLoading(true);
       const response = mocks.goals;
       setGoals(response);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchTransactions() {
+    try {
+      const response = mocks.transactions;
+
+      setTransactions(
+        response.map((item) => ({
+          ...item,
+          date: item.created_at,
+        }))
+      );
     } catch (error) {
       console.log(error);
     }
@@ -36,6 +79,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchGoals();
+    fetchTransactions();
   }, []);
 
   return (
@@ -51,6 +95,8 @@ export default function Home() {
         onPress={handleDetails}
       />
 
+      <Transactions transactions={transactions} />
+
       <BottomSheet
         ref={bottomSheetRef}
         title="Nova meta"
@@ -59,10 +105,15 @@ export default function Home() {
       >
         <Input
           placeholder="Nome da meta"
+          onChangeText={setName}
+          value={name}
         />
 
         <Input
           placeholder="Valor"
+          keyboardType="numeric"
+          onChangeText={setTotal}
+          value={total}
         />
 
         <Button title="Criar" onPress={handleCreate} />
